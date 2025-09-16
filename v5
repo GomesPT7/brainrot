@@ -1,0 +1,431 @@
+-- ================================================================= --
+-- ================= BRAINROT JUMPING SCRIPT v2.0 ================== --
+-- ======================== by Cyifog & AI ======================= --
+-- ================================================================= --
+
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Remote Events (com verificação para evitar erros)
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+
+-- Guardar valores originais do jogador
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local originalWalkSpeed = Humanoid.WalkSpeed
+local originalJumpPower = Humanoid.JumpPower
+
+-- ================================================================= --
+-- ========================== INTERFACE (GUI) ====================== --
+-- ================================================================= --
+
+-- Main ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotJumpingGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = PlayerGui
+
+-- Cores
+local theme = {
+    background = Color3.fromRGB(25, 25, 35),
+    header = Color3.fromRGB(45, 45, 60),
+    button = Color3.fromRGB(80, 120, 200),
+    buttonHover = Color3.fromRGB(100, 140, 220),
+    toggleOff = Color3.fromRGB(200, 80, 80),
+    toggleOn = Color3.fromRGB(80, 200, 120),
+    text = Color3.fromRGB(255, 255, 255),
+    subText = Color3.fromRGB(170, 170, 180),
+    sliderTrack = Color3.fromRGB(60, 60, 80),
+    sliderHandle = Color3.fromRGB(120, 160, 240)
+}
+
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 580) -- Tamanho aumentado para novas funções
+frame.Position = UDim2.new(0.1, 0, 0.1, 0)
+frame.BackgroundColor3 = theme.background
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local frameCorner = Instance.new("UICorner", frame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- Sombra
+local shadow = Instance.new("ImageLabel", frame)
+shadow.Name = "Shadow"
+shadow.Image = "rbxassetid://5554236805"
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+shadow.Size = UDim2.new(1, 30, 1, 30)
+shadow.Position = UDim2.new(0, -15, 0, -15)
+shadow.BackgroundTransparency = 1
+shadow.ImageTransparency = 0.5
+shadow.ZIndex = -1
+
+-- Header
+local header = Instance.new("Frame", frame)
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = theme.header
+header.BorderSizePixel = 0
+
+local headerCorner = Instance.new("UICorner", header)
+headerCorner.CornerRadius = UDim.new(0, 12)
+
+local headerGradient = Instance.new("UIGradient", header)
+headerGradient.Rotation = 90
+headerGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, theme.header),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 60, 80))
+}
+
+-- Title
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -40, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = theme.text
+title.Text = "BRAINROT JUMPING HUB"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Close Button
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = theme.text
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+
+-- Content Frame
+local content = Instance.new("ScrollingFrame", frame)
+content.Size = UDim2.new(1, 0, 1, -70)
+content.Position = UDim2.new(0, 0, 0, 50)
+content.BackgroundTransparency = 1
+content.BorderSizePixel = 0
+content.CanvasSize = UDim2.new(0, 0, 2, 0) -- Permite scroll
+content.ScrollBarImageColor3 = theme.sliderHandle
+content.ScrollBarThickness = 6
+
+-- UIListLayout
+local listLayout = Instance.new("UIListLayout", content)
+listLayout.Padding = UDim.new(0, 10)
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Função para criar botões
+local function createButton(text, iconId, iconOffset, iconSize, order)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0.9, 0, 0, 50)
+    button.BackgroundColor3 = theme.button
+    button.TextColor3 = theme.text
+    button.Text = text
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 14
+    button.AutoButtonColor = false
+    button.LayoutOrder = order
+    button.Parent = content
+
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+    local stroke = Instance.new("UIStroke", button)
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Color = Color3.fromRGB(60, 90, 150)
+    stroke.Thickness = 2
+
+    local icon = Instance.new("ImageLabel", button)
+    icon.Size = UDim2.new(0, 24, 0, 24)
+    icon.Position = UDim2.new(0, 15, 0.5, -12)
+    icon.BackgroundTransparency = 1
+    icon.Image = "rbxassetid://3926305904"
+    icon.ImageRectOffset = iconOffset
+    icon.ImageRectSize = iconSize
+    icon.ImageColor3 = theme.text
+    
+    return button, stroke
+end
+
+-- Função para criar Toggles
+local function createToggle(text, iconId, iconOffset, iconSize, order)
+    local button, stroke = createButton(text .. ": OFF", iconId, iconOffset, iconSize, order)
+    button.BackgroundColor3 = theme.toggleOff
+    stroke.Color = Color3.fromRGB(150, 60, 60)
+    return button, stroke
+end
+
+-- Função para criar Headers de Secção
+local function createSection(text, order)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.9, 0, 0, 25)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = theme.subText
+    label.Text = text
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.LayoutOrder = order
+    label.Parent = content
+end
+
+-- Função para criar Sliders
+local function createSlider(text, min, max, default, order)
+    local container = Instance.new("Frame", content)
+    container.Size = UDim2.new(0.9, 0, 0, 60)
+    container.BackgroundTransparency = 1
+    container.LayoutOrder = order
+
+    local label = Instance.new("TextLabel", container)
+    label.Size = UDim2.new(1, 0, 0, 25)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.Gotham
+    label.Text = text .. ": " .. default
+    label.TextColor3 = theme.text
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local track = Instance.new("Frame", container)
+    track.Size = UDim2.new(1, 0, 0, 8)
+    track.Position = UDim2.new(0, 0, 0, 30)
+    track.BackgroundColor3 = theme.sliderTrack
+    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+    
+    local handle = Instance.new("TextButton", track)
+    handle.Size = UDim2.new(0, 20, 0, 20)
+    handle.Position = UDim2.new((default - min) / (max - min), 0, 0.5, -10)
+    handle.BackgroundColor3 = theme.sliderHandle
+    handle.Draggable = true
+    handle.AutoButtonColor = false
+    handle.Text = ""
+    Instance.new("UICorner", handle).CornerRadius = UDim.new(1, 0)
+    
+    local value = default
+    local dragging = false
+
+    local function updateSlider(input)
+        local pos = input.Position.X - track.AbsolutePosition.X
+        local percent = math.clamp(pos / track.AbsoluteSize.X, 0, 1)
+        handle.Position = UDim2.new(percent, 0, 0.5, -10)
+        value = min + (max - min) * percent
+        label.Text = string.format("%s: %.1f", text, value)
+        return value
+    end
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+        end
+    end)
+    
+    handle.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input)
+        end
+    end)
+    
+    return updateSlider
+end
+
+-- ================== CRIAR ELEMENTOS DA GUI ==================
+createSection("Geral", 1)
+local moneyBtn, moneyStroke = createButton("INFINITE MONEY", nil, Vector2.new(964, 324), Vector2.new(36, 36), 2)
+
+createSection("Automação", 3)
+local pumpBtn, pumpStroke = createToggle("AUTO PUMP", nil, Vector2.new(404, 844), Vector2.new(36, 36), 4)
+local rebirthBtn, rebirthStroke = createToggle("AUTO REBIRTH", nil, Vector2.new(524, 44), Vector2.new(36, 36), 5)
+local jumpBtn, jumpStroke = createToggle("AUTO JUMP", nil, Vector2.new(84, 164), Vector2.new(36, 36), 6)
+local eggBtn, eggStroke = createToggle("AUTO OPEN EGG", nil, Vector2.new(4, 324), Vector2.new(36, 36), 7)
+local rewardBtn, rewardStroke = createToggle("AUTO COLLECT", nil, Vector2.new(164, 284), Vector2.new(36, 36), 8)
+
+createSection("Jogador", 9)
+local updateWalkSpeed = createSlider("WalkSpeed", 16, 200, originalWalkSpeed, 10)
+local updateJumpPower = createSlider("JumpPower", 50, 500, originalJumpPower, 11)
+
+-- Footer
+local footer = Instance.new("TextLabel", frame)
+footer.Size = UDim2.new(1, 0, 0, 20)
+footer.Position = UDim2.new(0, 0, 1, -25)
+footer.BackgroundTransparency = 1
+footer.TextColor3 = theme.subText
+footer.Text = "by Cyifog & AI"
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 12
+
+-- ================================================================= --
+-- ============================ LÓGICA ============================= --
+-- ================================================================= --
+
+-- Variáveis de Toggle
+local toggles = {
+    pump = false,
+    rebirth = false,
+    jump = false,
+    egg = false,
+    reward = false
+}
+
+-- Função de animação de botão
+local function animateButton(button, hover, isToggle, toggleState)
+    local targetColor
+    if isToggle then
+        local onColor = theme.toggleOn
+        local offColor = theme.toggleOff
+        local onHover = Color3.fromRGB(100, 220, 140)
+        local offHover = Color3.fromRGB(220, 100, 100)
+        targetColor = toggleState and (hover and onHover or onColor) or (hover and offHover or offColor)
+    else
+        targetColor = hover and theme.buttonHover or theme.button
+    end
+    TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
+end
+
+-- Conectar botões
+local function setupButtonEvents(button, stroke, isToggle, toggleName)
+    button.MouseEnter:Connect(function() animateButton(button, true, isToggle, toggles[toggleName]) end)
+    button.MouseLeave:Connect(function() animateButton(button, false, isToggle, toggles[toggleName]) end)
+    
+    if isToggle then
+        button.MouseButton1Click:Connect(function()
+            toggles[toggleName] = not toggles[toggleName]
+            local stateText = toggles[toggleName] and "ON" or "OFF"
+            button.Text = string.upper(toggleName) .. ": " .. stateText
+            stroke.Color = toggles[toggleName] and Color3.fromRGB(60, 150, 60) or Color3.fromRGB(150, 60, 60)
+            animateButton(button, false, true, toggles[toggleName])
+        end)
+    end
+end
+
+setupButtonEvents(moneyBtn, moneyStroke, false)
+setupButtonEvents(pumpBtn, pumpStroke, true, "pump")
+setupButtonEvents(rebirthBtn, rebirthStroke, true, "rebirth")
+setupButtonEvents(jumpBtn, jumpStroke, true, "jump")
+setupButtonEvents(eggBtn, eggStroke, true, "egg")
+setupButtonEvents(rewardBtn, rewardStroke, true, "reward")
+
+-- Botão de Dinheiro
+moneyBtn.MouseButton1Click:Connect(function()
+    for _, value in ipairs({9e+99, 1e+100, math.huge}) do
+        pcall(function() GiveOutReward:FireServer({value = value, type = "Money", chance = 0.3}) end)
+        task.wait(0.1)
+    end
+end)
+
+-- Botão de fechar
+closeBtn.MouseButton1Click:Connect(function()
+    -- Restaurar valores originais
+    Humanoid.WalkSpeed = originalWalkSpeed
+    Humanoid.JumpPower = originalJumpPower
+    screenGui:Destroy()
+end)
+
+-- ================================================================= --
+-- ======================= LOOPS AUTOMÁTICOS ======================= --
+-- ================================================================= --
+
+-- Loop: Auto Pump
+task.spawn(function()
+    while screenGui.Parent do
+        if toggles.pump then pcall(function() Bubble:FireServer() end) end
+        task.wait(0.05)
+    end
+end)
+
+-- Loop: Auto Rebirth (CORRIGIDO)
+task.spawn(function()
+    while screenGui.Parent do
+        if toggles.rebirth then
+            pcall(function()
+                local rebirthGui = PlayerGui:FindFirstChild("RebirthGUI")
+                if rebirthGui and rebirthGui:FindFirstChild("Rebirth") then
+                    local originalState = rebirthGui.Enabled
+                    rebirthGui.Enabled = true
+                    task.wait(0.2)
+                    
+                    local rebirthButton = rebirthGui.Rebirth:FindFirstChildOfClass("TextButton") or rebirthGui.Rebirth:FindFirstChildOfClass("ImageButton")
+                    if rebirthButton then
+                        firesignal(rebirthButton.MouseButton1Click)
+                    end
+                    
+                    task.wait(0.2)
+                    rebirthGui.Enabled = originalState
+                end
+            end)
+        end
+        task.wait(1)
+    end
+end)
+
+-- Loop: Auto Jump
+task.spawn(function()
+    while screenGui.Parent do
+        if toggles.jump and Humanoid.FloorMaterial ~= Enum.Material.Air then
+            Humanoid.Jump = true
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- Loop: Auto Open Egg
+task.spawn(function()
+    while screenGui.Parent do
+        if toggles.egg then
+            pcall(function()
+                local eggGui = PlayerGui:FindFirstChild("EggGui")
+                if eggGui and eggGui.Enabled then
+                    local openButton = eggGui:FindFirstChild("Open1", true) -- "Open1" é um nome comum
+                    if openButton and openButton:IsA("GuiButton") then
+                        firesignal(openButton.MouseButton1Click)
+                    end
+                end
+            end)
+        end
+        task.wait(0.5)
+    end
+end)
+
+-- Loop: Auto Collect Rewards
+task.spawn(function()
+    while screenGui.Parent do
+        if toggles.reward then
+            pcall(function()
+                -- Procura por GUIs de recompensa comuns
+                for _, guiName in ipairs({"TimeRewardGUI", "SubRewardGUI", "GroupRewardGui"}) do
+                    local rewardGui = PlayerGui:FindFirstChild(guiName)
+                    if rewardGui and rewardGui.Enabled then
+                        local claimButton = rewardGui:FindFirstChild("Claim", true) or rewardGui:FindFirstChild("Collect", true)
+                        if claimButton and claimButton:IsA("GuiButton") then
+                            firesignal(claimButton.MouseButton1Click)
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(2)
+    end
+end)
+
+-- Loop: Atualizar WalkSpeed e JumpPower
+task.spawn(function()
+    while screenGui.Parent do
+        pcall(function()
+            Humanoid.WalkSpeed = updateWalkSpeed({Position = {X = handle.AbsolutePosition.X}})
+            Humanoid.JumpPower = updateJumpPower({Position = {X = handle.AbsolutePosition.X}})
+        end)
+        task.wait(0.2)
+    end
+end)
