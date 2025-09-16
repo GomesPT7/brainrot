@@ -1,0 +1,377 @@
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotJumpingGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Cores
+local backgroundColor = Color3.fromRGB(25, 25, 35)
+local headerColor = Color3.fromRGB(45, 45, 60)
+local buttonColor = Color3.fromRGB(80, 120, 200)
+local buttonHoverColor = Color3.fromRGB(100, 140, 220)
+local toggleOffColor = Color3.fromRGB(200, 80, 80)
+local toggleOnColor = Color3.fromRGB(80, 200, 120)
+
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 280, 0, 340)
+frame.Position = UDim2.new(0.1, 0, 0.2, 0)
+frame.BackgroundColor3 = backgroundColor
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+-- Sombra
+local shadow = Instance.new("ImageLabel")
+shadow.Name = "Shadow"
+shadow.Image = "rbxassetid://5554236805"
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+shadow.Size = UDim2.new(1, 30, 1, 30)
+shadow.Position = UDim2.new(0, -15, 0, -15)
+shadow.BackgroundTransparency = 1
+shadow.ImageTransparency = 0.5
+shadow.ZIndex = -1
+shadow.Parent = frame
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 12)
+frameCorner.Parent = frame
+
+-- Header
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = headerColor
+header.BorderSizePixel = 0
+header.Parent = frame
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 12)
+headerCorner.Parent = header
+
+local headerGradient = Instance.new("UIGradient")
+headerGradient.Rotation = 90
+headerGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, headerColor),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 60, 80))
+}
+headerGradient.Parent = header
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "BRAINROT JUMPING"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.Parent = header
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Content
+local content = Instance.new("Frame")
+content.Size = UDim2.new(1, -20, 1, -60)
+content.Position = UDim2.new(0, 10, 0, 50)
+content.BackgroundTransparency = 1
+content.Parent = frame
+
+-- UIListLayout para os botões
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 15)
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = content
+
+-- Inf Money Button
+local moneyBtn = Instance.new("TextButton")
+moneyBtn.Size = UDim2.new(1, 0, 0, 50)
+moneyBtn.BackgroundColor3 = buttonColor
+moneyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+moneyBtn.Text = "INFINITE MONEY"
+moneyBtn.Font = Enum.Font.GothamBold
+moneyBtn.TextSize = 14
+moneyBtn.AutoButtonColor = false
+moneyBtn.LayoutOrder = 1
+moneyBtn.Parent = content
+
+local moneyCorner = Instance.new("UICorner")
+moneyCorner.CornerRadius = UDim.new(0, 8)
+moneyCorner.Parent = moneyBtn
+
+local moneyStroke = Instance.new("UIStroke")
+moneyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+moneyStroke.Color = Color3.fromRGB(60, 90, 150)
+moneyStroke.Thickness = 2
+moneyStroke.Parent = moneyBtn
+
+-- Ícone de dinheiro
+local moneyIcon = Instance.new("ImageLabel")
+moneyIcon.Size = UDim2.new(0, 24, 0, 24)
+moneyIcon.Position = UDim2.new(0, 15, 0.5, -12)
+moneyIcon.BackgroundTransparency = 1
+moneyIcon.Image = "rbxassetid://3926305904"
+moneyIcon.ImageRectOffset = Vector2.new(964, 324)
+moneyIcon.ImageRectSize = Vector2.new(36, 36)
+moneyIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+moneyIcon.Parent = moneyBtn
+
+-- Auto Pump Toggle Button
+local pumpBtn = Instance.new("TextButton")
+pumpBtn.Size = UDim2.new(1, 0, 0, 50)
+pumpBtn.BackgroundColor3 = toggleOffColor
+pumpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+pumpBtn.Text = "AUTO PUMP: OFF"
+pumpBtn.Font = Enum.Font.GothamBold
+pumpBtn.TextSize = 14
+pumpBtn.AutoButtonColor = false
+pumpBtn.LayoutOrder = 2
+pumpBtn.Parent = content
+
+local pumpCorner = Instance.new("UICorner")
+pumpCorner.CornerRadius = UDim.new(0, 8)
+pumpCorner.Parent = pumpBtn
+
+local pumpStroke = Instance.new("UIStroke")
+pumpStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+pumpStroke.Color = Color3.fromRGB(150, 60, 60)
+pumpStroke.Thickness = 2
+pumpStroke.Parent = pumpBtn
+
+-- Ícone de bomba
+local pumpIcon = Instance.new("ImageLabel")
+pumpIcon.Size = UDim2.new(0, 24, 0, 24)
+pumpIcon.Position = UDim2.new(0, 15, 0.5, -12)
+pumpIcon.BackgroundTransparency = 1
+pumpIcon.Image = "rbxassetid://3926305904"
+pumpIcon.ImageRectOffset = Vector2.new(404, 844)
+pumpIcon.ImageRectSize = Vector2.new(36, 36)
+pumpIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+pumpIcon.Parent = pumpBtn
+
+-- Auto Rebirth Toggle Button
+local rebirthBtn = Instance.new("TextButton")
+rebirthBtn.Size = UDim2.new(1, 0, 0, 50)
+rebirthBtn.BackgroundColor3 = toggleOffColor
+rebirthBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+rebirthBtn.Text = "AUTO REBIRTH: OFF"
+rebirthBtn.Font = Enum.Font.GothamBold
+rebirthBtn.TextSize = 14
+rebirthBtn.AutoButtonColor = false
+rebirthBtn.LayoutOrder = 3
+rebirthBtn.Parent = content
+
+local rebirthCorner = Instance.new("UICorner")
+rebirthCorner.CornerRadius = UDim.new(0, 8)
+rebirthCorner.Parent = rebirthBtn
+
+local rebirthStroke = Instance.new("UIStroke")
+rebirthStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+rebirthStroke.Color = Color3.fromRGB(150, 60, 60)
+rebirthStroke.Thickness = 2
+rebirthStroke.Parent = rebirthBtn
+
+-- Ícone de rebirth
+local rebirthIcon = Instance.new("ImageLabel")
+rebirthIcon.Size = UDim2.new(0, 24, 0, 24)
+rebirthIcon.Position = UDim2.new(0, 15, 0.5, -12)
+rebirthIcon.BackgroundTransparency = 1
+rebirthIcon.Image = "rbxassetid://3926305904"
+rebirthIcon.ImageRectOffset = Vector2.new(524, 44)
+rebirthIcon.ImageRectSize = Vector2.new(36, 36)
+rebirthIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+rebirthIcon.Parent = rebirthBtn
+
+-- Footer
+local footer = Instance.new("TextLabel")
+footer.Size = UDim2.new(1, 0, 0, 20)
+footer.Position = UDim2.new(0, 0, 1, -25)
+footer.BackgroundTransparency = 1
+footer.TextColor3 = Color3.fromRGB(170, 170, 180)
+footer.Text = "by Cyifog"
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 12
+footer.Parent = frame
+
+-- Logic
+local pumpToggle = false
+local rebirthToggle = false
+
+-- Função de animação de botão
+local function animateButton(button, hover)
+    local targetColor = hover and buttonHoverColor or buttonColor
+    if button == pumpBtn then
+        targetColor = pumpToggle and (hover and Color3.fromRGB(100, 220, 140) or toggleOnColor) 
+                    or (hover and Color3.fromRGB(220, 100, 100) or toggleOffColor)
+    elseif button == rebirthBtn then
+        targetColor = rebirthToggle and (hover and Color3.fromRGB(100, 220, 140) or toggleOnColor) 
+                    or (hover and Color3.fromRGB(220, 100, 100) or toggleOffColor)
+    end
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(button, tweenInfo, {BackgroundColor3 = targetColor})
+    tween:Play()
+end
+
+-- Inf Money button click - VALOR AUMENTADO
+moneyBtn.MouseButton1Click:Connect(function()
+    -- Tenta múltiplos valores para garantir que funcione
+    local moneyValues = {
+        9e+99,  -- Valor extremamente alto
+        1e+100, -- Ainda maior
+        9e+50,  -- Valor muito alto
+        9e+35,  -- Maior que 3e+26
+        math.huge -- Valor infinito
+    }
+    
+    for _, value in ipairs(moneyValues) do
+        GiveOutReward:FireServer({
+            value = value,
+            type = "Money",
+            chance = 0.3
+        })
+        task.wait(0.1)
+    end
+    
+    -- Animação de clique
+    local originalSize = moneyBtn.Size
+    moneyBtn.Size = UDim2.new(0.95, 0, 0, 48)
+    task.wait(0.1)
+    moneyBtn.Size = originalSize
+end)
+
+-- Efeitos hover para moneyBtn
+moneyBtn.MouseEnter:Connect(function()
+    animateButton(moneyBtn, true)
+end)
+
+moneyBtn.MouseLeave:Connect(function()
+    animateButton(moneyBtn, false)
+end)
+
+-- Auto Pump toggle click
+pumpBtn.MouseButton1Click:Connect(function()
+    pumpToggle = not pumpToggle
+    if pumpToggle then
+        pumpBtn.Text = "AUTO PUMP: ON"
+        animateButton(pumpBtn, false)
+        pumpStroke.Color = Color3.fromRGB(60, 150, 60)
+    else
+        pumpBtn.Text = "AUTO PUMP: OFF"
+        animateButton(pumpBtn, false)
+        pumpStroke.Color = Color3.fromRGB(150, 60, 60)
+    end
+end)
+
+-- Efeitos hover para pumpBtn
+pumpBtn.MouseEnter:Connect(function()
+    animateButton(pumpBtn, true)
+end)
+
+pumpBtn.MouseLeave:Connect(function()
+    animateButton(pumpBtn, false)
+end)
+
+-- Auto Rebirth toggle click
+rebirthBtn.MouseButton1Click:Connect(function()
+    rebirthToggle = not rebirthToggle
+    if rebirthToggle then
+        rebirthBtn.Text = "AUTO REBIRTH: ON"
+        animateButton(rebirthBtn, false)
+        rebirthStroke.Color = Color3.fromRGB(60, 150, 60)
+    else
+        rebirthBtn.Text = "AUTO REBIRTH: OFF"
+        animateButton(rebirthBtn, false)
+        rebirthStroke.Color = Color3.fromRGB(150, 60, 60)
+    end
+end)
+
+-- Efeitos hover para rebirthBtn
+rebirthBtn.MouseEnter:Connect(function()
+    animateButton(rebirthBtn, true)
+end)
+
+rebirthBtn.MouseLeave:Connect(function()
+    animateButton(rebirthBtn, false)
+end)
+
+-- Loop for auto pump
+task.spawn(function()
+    while true do
+        if pumpToggle then
+            Bubble:FireServer()
+        end
+        task.wait(0.05) -- pump speed
+    end
+end)
+
+-- Loop for auto rebirth
+task.spawn(function()
+    while true do
+        if rebirthToggle then
+            -- Tenta clicar no botão de rebirth principal
+            local success1 = pcall(function()
+                local mainRebirth = LocalPlayer.PlayerGui.Main.Left.Buttons.Rebirth
+                if mainRebirth and mainRebirth:IsA("GuiButton") then
+                    firesignal(mainRebirth.MouseButton1Click)
+                end
+            end)
+            
+            task.wait(0.5)
+            
+            -- Tenta clicar no botão de confirmação
+            local success2 = pcall(function()
+                local confirmRebirth = LocalPlayer.PlayerGui.RebirthGUI.Rebirth.Background.Buttons.Rebirth
+                if confirmRebirth and confirmRebirth:IsA("GuiButton") then
+                    firesignal(confirmRebirth.MouseButton1Click)
+                end
+            end)
+            
+            -- Se firesignal não funcionar, tenta método alternativo
+            if not success1 or not success2 then
+                pcall(function()
+                    -- Método alternativo 1: Ativa diretamente
+                    local mainRebirth = LocalPlayer.PlayerGui.Main.Left.Buttons.Rebirth
+                    if mainRebirth and mainRebirth:IsA("GuiButton") then
+                        mainRebirth.Activated:Fire()
+                    end
+                end)
+                
+                task.wait(0.5)
+                
+                pcall(function()
+                    local confirmRebirth = LocalPlayer.PlayerGui.RebirthGUI.Rebirth.Background.Buttons.Rebirth
+                    if confirmRebirth and confirmRebirth:IsA("GuiButton") then
+                        confirmRebirth.Activated:Fire()
+                    end
+                end)
+            end
+        end
+        task.wait(2) -- Espera 2 segundos entre tentativas de rebirth
+    end
+end)
