@@ -1,0 +1,208 @@
+--==| Services |==--
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+--==| Remotes base utilizados pelo script |==--
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+
+--==| Criar GUI principal |==--
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SuperBrainrotGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Paleta de cores
+local backgroundColor = Color3.fromRGB(25, 25, 35)
+local headerColor = Color3.fromRGB(45, 45, 60)
+local buttonColor = Color3.fromRGB(80, 120, 200)
+local buttonHoverColor = Color3.fromRGB(100, 140, 220)
+local toggleOffColor = Color3.fromRGB(200, 80, 80)
+local toggleOnColor = Color3.fromRGB(80, 200, 120)
+
+-- Frame principal
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 280, 0, 400)
+frame.Position = UDim2.new(0.1, 0, 0.2, 0)
+frame.BackgroundColor3 = backgroundColor
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+-- Header
+local header = Instance.new("Frame", frame)
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = headerColor
+header.BorderSizePixel = 0
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12)
+
+-- Título
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -40, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "SUPER BRAINROT MENU"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Botão de fechar
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Área dos botões
+local content = Instance.new("Frame", frame)
+content.Size = UDim2.new(1, -20, 1, -60)
+content.Position = UDim2.new(0, 10, 0, 50)
+content.BackgroundTransparency = 1
+local layout = Instance.new("UIListLayout", content)
+layout.Padding = UDim.new(0, 15)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+--==| Função utilitária p/ criar botões |==--
+local function createButton(text, order, bgColor)
+    local btn = Instance.new("TextButton", content)
+    btn.Size = UDim2.new(1, 0, 0, 45)
+    btn.BackgroundColor3 = bgColor or buttonColor
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.AutoButtonColor = false
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    return btn
+end
+
+--==| Botões principais |==--
+local moneyBtn    = createButton("INFINITE MONEY", 1, buttonColor)
+local pumpBtn     = createButton("AUTO PUMP: OFF", 2, toggleOffColor)
+local rebirthBtn  = createButton("AUTO REBIRTH: OFF", 3, toggleOffColor)
+local giftsBtn    = createButton("AUTO CLAIM REWARDS: OFF", 4, toggleOffColor)
+
+--==| Estados lógicos |==--
+local pumpToggle, rebirthToggle, giftsToggle = false, false, false
+
+--==| Funções animar |==--
+local function animateBtn(btn, state)
+    local color = state and toggleOnColor or toggleOffColor
+    if btn == moneyBtn then color = buttonColor end
+    TweenService:Create(btn, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {BackgroundColor3 = color}):Play()
+end
+
+--==| [1] Dinheiro infinito |==--
+moneyBtn.MouseButton1Click:Connect(function()
+    local moneyValues = { 9e+99, 1e+150, 1e+200, math.huge }
+    for _, value in ipairs(moneyValues) do
+        GiveOutReward:FireServer({value = value, type = "Money", chance = 1})
+        task.wait(0.1)
+    end
+end)
+
+--==| [2] Auto Pump |==--
+pumpBtn.MouseButton1Click:Connect(function()
+    pumpToggle = not pumpToggle
+    pumpBtn.Text = "AUTO PUMP: " .. (pumpToggle and "ON" or "OFF")
+    animateBtn(pumpBtn, pumpToggle)
+end)
+
+task.spawn(function()
+    while task.wait(0.05) do
+        if pumpToggle then
+            Bubble:FireServer()
+        end
+    end
+end)
+
+--==| [3] Auto Rebirth |==--
+rebirthBtn.MouseButton1Click:Connect(function()
+    rebirthToggle = not rebirthToggle
+    rebirthBtn.Text = "AUTO REBIRTH: " .. (rebirthToggle and "ON" or "OFF")
+    animateBtn(rebirthBtn, rebirthToggle)
+end)
+
+task.spawn(function()
+    while task.wait(2) do
+        if rebirthToggle then
+            -- Passo 1: clicar em Main.Left.Buttons.Rebirth
+            pcall(function()
+                local mainGui = LocalPlayer.PlayerGui:FindFirstChild("Main")
+                if mainGui and mainGui:FindFirstChild("Left") then
+                    local rebirthBtn1 = mainGui.Left.Buttons:FindFirstChild("Rebirth")
+                    if rebirthBtn1 and rebirthBtn1:IsA("GuiButton") then
+                        firesignal(rebirthBtn1.MouseButton1Click)
+                    end
+                end
+            end)
+
+            task.wait(0.4)
+
+            -- Passo 2: confirmar em RebirthGUI
+            pcall(function()
+                local rebirthGui = LocalPlayer.PlayerGui:FindFirstChild("RebirthGUI")
+                if rebirthGui and rebirthGui:FindFirstChild("Rebirth") then
+                    local frame = rebirthGui.Rebirth:FindFirstChild("Background")
+                    if frame and frame:FindFirstChild("Buttons") then
+                        local confirm = frame.Buttons:FindFirstChild("Rebirth")
+                        if confirm and confirm:IsA("GuiButton") then
+                            firesignal(confirm.MouseButton1Click)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+--==| [4] Auto Collect Rewards (LuckyWheel, Daily, Gifts, TimeReward) |==--
+giftsBtn.MouseButton1Click:Connect(function()
+    giftsToggle = not giftsToggle
+    giftsBtn.Text = "AUTO CLAIM REWARDS: " .. (giftsToggle and "ON" or "OFF")
+    animateBtn(giftsBtn, giftsToggle)
+end)
+
+task.spawn(function()
+    while task.wait(5) do
+        if giftsToggle then
+            local pg = LocalPlayer.PlayerGui
+            -- Tenta localizar GUIs mencionados no seu debug
+            local names = {"TimeRewardGUI","LuckyWheelGUI","SubRewardGUI","Reward","Claim","DailyReward"}
+            for _,guiName in ipairs(names) do
+                local target = pg:FindFirstChild(guiName, true)
+                if target then
+                    for _, child in pairs(target:GetDescendants()) do
+                        if child:IsA("TextButton") or child:IsA("ImageButton") then
+                            pcall(function() firesignal(child.MouseButton1Click) end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+--==| Footer |==--
+local footer = Instance.new("TextLabel", frame)
+footer.Size = UDim2.new(1, 0, 0, 20)
+footer.Position = UDim2.new(0, 0, 1, -25)
+footer.BackgroundTransparency = 1
+footer.TextColor3 = Color3.fromRGB(170, 170, 180)
+footer.Text = "by Cyifog - AutoFarm Edition"
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 12
