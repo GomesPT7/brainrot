@@ -1,0 +1,303 @@
+-- ================================================================= --
+-- ================= BRAINROT JUMPING SCRIPT v6.1 ================== --
+-- =============== Modern GUI | Infinite Money & Auto Pump ========= --
+-- =============== Added Auto Money Loop Toggle ==================== --
+-- ================================================================= --
+
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Remote Events
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+
+-- ================================================================= --
+-- ========================== INTERFACE (GUI) ====================== --
+-- ================================================================= --
+
+-- Main ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotJumpingGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = PlayerGui
+
+-- Cores
+local theme = {
+    background = Color3.fromRGB(25, 25, 35),
+    header = Color3.fromRGB(45, 45, 60),
+    button = Color3.fromRGB(80, 120, 200),
+    buttonHover = Color3.fromRGB(100, 140, 220),
+    toggleOff = Color3.fromRGB(200, 80, 80),
+    toggleOn = Color3.fromRGB(80, 200, 120),
+    text = Color3.fromRGB(255, 255, 255),
+    subText = Color3.fromRGB(170, 170, 180)
+}
+
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 280, 0, 240)
+frame.Position = UDim2.new(0.1, 0, 0.2, 0)
+frame.BackgroundColor3 = theme.background
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+-- Sombra
+local shadow = Instance.new("ImageLabel", frame)
+shadow.Name = "Shadow"
+shadow.Image = "rbxassetid://5554236805"
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+shadow.Size = UDim2.new(1, 30, 1, 30)
+shadow.Position = UDim2.new(0, -15, 0, -15)
+shadow.BackgroundTransparency = 1
+shadow.ImageTransparency = 0.5
+shadow.ZIndex = -1
+
+local frameCorner = Instance.new("UICorner", frame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- Header
+local header = Instance.new("Frame", frame)
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = theme.header
+header.BorderSizePixel = 0
+
+local headerCorner = Instance.new("UICorner", header)
+headerCorner.CornerRadius = UDim.new(0, 12)
+
+local headerGradient = Instance.new("UIGradient", header)
+headerGradient.Rotation = 90
+headerGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, theme.header),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 60, 80))
+}
+
+-- Title
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -40, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = theme.text
+title.Text = "BRAINROT JUMPING"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Close Button
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = theme.text
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Content
+local content = Instance.new("Frame", frame)
+content.Size = UDim2.new(1, -20, 1, -60)
+content.Position = UDim2.new(0, 10, 0, 50)
+content.BackgroundTransparency = 1
+
+-- UIListLayout
+local listLayout = Instance.new("UIListLayout", content)
+listLayout.Padding = UDim.new(0, 15)
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Inf Money Button (clique único)
+local moneyBtn = Instance.new("TextButton", content)
+moneyBtn.Size = UDim2.new(1, 0, 0, 50)
+moneyBtn.BackgroundColor3 = theme.button
+moneyBtn.TextColor3 = theme.text
+moneyBtn.Text = "INFINITE MONEY"
+moneyBtn.Font = Enum.Font.GothamBold
+moneyBtn.TextSize = 14
+moneyBtn.AutoButtonColor = false
+moneyBtn.LayoutOrder = 1
+
+local moneyCorner = Instance.new("UICorner", moneyBtn)
+moneyCorner.CornerRadius = UDim.new(0, 8)
+
+local moneyStroke = Instance.new("UIStroke", moneyBtn)
+moneyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+moneyStroke.Color = Color3.fromRGB(60, 90, 150)
+moneyStroke.Thickness = 2
+
+-- Ícone de dinheiro
+local moneyIcon = Instance.new("ImageLabel", moneyBtn)
+moneyIcon.Size = UDim2.new(0, 24, 0, 24)
+moneyIcon.Position = UDim2.new(0, 15, 0.5, -12)
+moneyIcon.BackgroundTransparency = 1
+moneyIcon.Image = "rbxassetid://3926305904"
+moneyIcon.ImageRectOffset = Vector2.new(964, 324)
+moneyIcon.ImageRectSize = Vector2.new(36, 36)
+moneyIcon.ImageColor3 = theme.text
+
+-- Auto Money Toggle Button (loop infinito)
+local autoMoneyBtn = Instance.new("TextButton", content)
+autoMoneyBtn.Size = UDim2.new(1, 0, 0, 50)
+autoMoneyBtn.BackgroundColor3 = theme.toggleOff
+autoMoneyBtn.TextColor3 = theme.text
+autoMoneyBtn.Text = "AUTO MONEY: OFF"
+autoMoneyBtn.Font = Enum.Font.GothamBold
+autoMoneyBtn.TextSize = 14
+autoMoneyBtn.AutoButtonColor = false
+autoMoneyBtn.LayoutOrder = 2
+
+local autoMoneyCorner = Instance.new("UICorner", autoMoneyBtn)
+autoMoneyCorner.CornerRadius = UDim.new(0, 8)
+
+local autoMoneyStroke = Instance.new("UIStroke", autoMoneyBtn)
+autoMoneyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+autoMoneyStroke.Color = Color3.fromRGB(150, 60, 60)
+autoMoneyStroke.Thickness = 2
+
+-- Ícone de dinheiro infinito
+local autoMoneyIcon = Instance.new("ImageLabel", autoMoneyBtn)
+autoMoneyIcon.Size = UDim2.new(0, 24, 0, 24)
+autoMoneyIcon.Position = UDim2.new(0, 15, 0.5, -12)
+autoMoneyIcon.BackgroundTransparency = 1
+autoMoneyIcon.Image = "rbxassetid://3926305904"
+autoMoneyIcon.ImageRectOffset = Vector2.new(964, 324)
+autoMoneyIcon.ImageRectSize = Vector2.new(36, 36)
+autoMoneyIcon.ImageColor3 = theme.text
+
+-- Auto Pump Toggle Button
+local pumpBtn = Instance.new("TextButton", content)
+pumpBtn.Size = UDim2.new(1, 0, 0, 50)
+pumpBtn.BackgroundColor3 = theme.toggleOff
+pumpBtn.TextColor3 = theme.text
+pumpBtn.Text = "AUTO PUMP: OFF"
+pumpBtn.Font = Enum.Font.GothamBold
+pumpBtn.TextSize = 14
+pumpBtn.AutoButtonColor = false
+pumpBtn.LayoutOrder = 3
+
+local pumpCorner = Instance.new("UICorner", pumpBtn)
+pumpCorner.CornerRadius = UDim.new(0, 8)
+
+local pumpStroke = Instance.new("UIStroke", pumpBtn)
+pumpStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+pumpStroke.Color = Color3.fromRGB(150, 60, 60)
+pumpStroke.Thickness = 2
+
+-- Ícone de bomba
+local pumpIcon = Instance.new("ImageLabel", pumpBtn)
+pumpIcon.Size = UDim2.new(0, 24, 0, 24)
+pumpIcon.Position = UDim2.new(0, 15, 0.5, -12)
+pumpIcon.BackgroundTransparency = 1
+pumpIcon.Image = "rbxassetid://3926305904"
+pumpIcon.ImageRectOffset = Vector2.new(404, 844)
+pumpIcon.ImageRectSize = Vector2.new(36, 36)
+pumpIcon.ImageColor3 = theme.text
+
+-- Footer
+local footer = Instance.new("TextLabel", frame)
+footer.Size = UDim2.new(1, 0, 0, 20)
+footer.Position = UDim2.new(0, 0, 1, -25)
+footer.BackgroundTransparency = 1
+footer.TextColor3 = theme.subText
+footer.Text = "by cyifog"
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 12
+
+-- ================================================================= --
+-- ============================== LÓGICA =========================== --
+-- ================================================================= --
+
+local pumpToggle = false
+local autoMoneyToggle = false
+
+-- Função de animação de botão
+local function animateButton(button, hover)
+    local targetColor = hover and theme.buttonHover or theme.button
+    if button == pumpBtn then
+        targetColor = pumpToggle and (hover and Color3.fromRGB(100, 220, 140) or theme.toggleOn) 
+                    or (hover and Color3.fromRGB(220, 100, 100) or theme.toggleOff)
+    elseif button == autoMoneyBtn then
+        targetColor = autoMoneyToggle and (hover and Color3.fromRGB(100, 220, 140) or theme.toggleOn) 
+                    or (hover and Color3.fromRGB(220, 100, 100) or theme.toggleOff)
+    end
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(button, tweenInfo, {BackgroundColor3 = targetColor})
+    tween:Play()
+end
+
+-- Inf Money button click (clique único)
+moneyBtn.MouseButton1Click:Connect(function()
+    local moneyValues = {9e+99, 1e+100, 9e+50, 9e+35, math.huge}
+    for _, value in ipairs(moneyValues) do
+        GiveOutReward:FireServer({value = value, type = "Money", chance = 0.3})
+        task.wait(0.1)
+    end
+    
+    -- Animação de clique
+    local originalSize = moneyBtn.Size
+    moneyBtn.Size = UDim2.new(0.95, 0, 0, 48)
+    task.wait(0.1)
+    moneyBtn.Size = originalSize
+end)
+
+-- Efeitos hover para moneyBtn
+moneyBtn.MouseEnter:Connect(function() animateButton(moneyBtn, true) end)
+moneyBtn.MouseLeave:Connect(function() animateButton(moneyBtn, false) end)
+
+-- Auto Money toggle click (loop infinito)
+autoMoneyBtn.MouseButton1Click:Connect(function()
+    autoMoneyToggle = not autoMoneyToggle
+    autoMoneyBtn.Text = "AUTO MONEY: " .. (autoMoneyToggle and "ON" or "OFF")
+    animateButton(autoMoneyBtn, false)
+    autoMoneyStroke.Color = autoMoneyToggle and Color3.fromRGB(60, 150, 60) or Color3.fromRGB(150, 60, 60)
+end)
+
+-- Efeitos hover para autoMoneyBtn
+autoMoneyBtn.MouseEnter:Connect(function() animateButton(autoMoneyBtn, true) end)
+autoMoneyBtn.MouseLeave:Connect(function() animateButton(autoMoneyBtn, false) end)
+
+-- Auto Pump toggle click
+pumpBtn.MouseButton1Click:Connect(function()
+    pumpToggle = not pumpToggle
+    pumpBtn.Text = "AUTO PUMP: " .. (pumpToggle and "ON" or "OFF")
+    animateButton(pumpBtn, false)
+    pumpStroke.Color = pumpToggle and Color3.fromRGB(60, 150, 60) or Color3.fromRGB(150, 60, 60)
+end)
+
+-- Efeitos hover para pumpBtn
+pumpBtn.MouseEnter:Connect(function() animateButton(pumpBtn, true) end)
+pumpBtn.MouseLeave:Connect(function() animateButton(pumpBtn, false) end)
+
+-- Loop for auto pump
+task.spawn(function()
+    while true do
+        if pumpToggle then
+            Bubble:FireServer()
+        end
+        task.wait(0.05) -- pump speed
+    end
+end)
+
+-- Loop for auto money (infinito quando ON)
+task.spawn(function()
+    while true do
+        if autoMoneyToggle then
+            local moneyValues = {9e+99, 1e+100, 9e+50, 9e+35, math.huge}
+            for _, value in ipairs(moneyValues) do
+                GiveOutReward:FireServer({value = value, type = "Money", chance = 0.3})
+                task.wait(0.1)
+            end
+        end
+        task.wait(0.5) -- Delay entre loops para evitar sobrecarga
+    end
+end)
