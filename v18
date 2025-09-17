@@ -1,0 +1,199 @@
+-- ================================================================= --
+-- ================= BRAINROT JUMPING SCRIPT v5.1 ================== --
+-- ============ Final Complete Script (Auto Rebirth Robust) ========= --
+-- ================================================================= --
+
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService") -- Usado para animações futuras ou se adicionadas
+
+-- Remote Events/Functions
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+local RequestRebirth = ReplicatedStorage.Remotes:FindFirstChild("RequestRebirth") -- Tenta encontrar o remote de rebirth
+
+-- Guardar valores originais do jogador
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local originalWalkSpeed = Humanoid.WalkSpeed
+local originalJumpPower = Humanoid.JumpPower
+
+-- ================================================================= --
+-- ========================== INTERFACE (GUI) ====================== --
+-- ================================================================= --
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotJumpingGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = PlayerGui
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 300, 0, 250)
+frame.Position = UDim2.new(0.1, 0, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+-- Header
+local header = Instance.new("Frame", frame)
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -40, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "BRAINROT JUMPING HUB"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Botão fechar
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.MouseButton1Click:Connect(function()
+    Humanoid.WalkSpeed = originalWalkSpeed
+    Humanoid.JumpPower = originalJumpPower
+    screenGui:Destroy()
+end)
+
+-- Função para criar botões
+local function createButton(text, order, color)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, 0, 50 + ((order-1) * 45))
+    btn.BackgroundColor3 = color or Color3.fromRGB(90, 100, 200)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    return btn
+end
+
+-- Botões
+local moneyBtn = createButton("INFINITE MONEY", 1, Color3.fromRGB(80, 120, 200))
+local pumpBtn = createButton("AUTO PUMP: OFF", 2, Color3.fromRGB(200, 80, 80))
+local rebirthBtn = createButton("AUTO REBIRTH: OFF", 3, Color3.fromRGB(200, 80, 80))
+local jumpBtn = createButton("AUTO JUMP: OFF", 4, Color3.fromRGB(200, 80, 80))
+
+-- Variáveis de estado
+local toggles = {
+    pump = false,
+    rebirth = false,
+    jump = false
+}
+
+-- ================================================================= --
+-- ============================== LÓGICA =========================== --
+-- ================================================================= --
+
+-- Infinite Money
+moneyBtn.MouseButton1Click:Connect(function()
+    for _, value in ipairs({9e+99, 1e+100, 9e+50, math.huge}) do
+        pcall(function() 
+            GiveOutReward:FireServer({value = value, type = "Money", chance = 0}) 
+        end)
+        task.wait(0.1)
+    end
+end)
+
+-- Toggle helper
+local function setupToggle(btn, key)
+    btn.MouseButton1Click:Connect(function()
+        toggles[key] = not toggles[key]
+        btn.Text = key:upper() .. ": " .. (toggles[key] and "ON" or "OFF")
+        btn.BackgroundColor3 = toggles[key] and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(200, 80, 80)
+    end)
+end
+
+setupToggle(pumpBtn, "pump")
+setupToggle(rebirthBtn, "rebirth")
+setupToggle(jumpBtn, "jump")
+
+-- ================================================================= --
+-- ========================= LOOPS AUTOMÁTICOS ===================== --
+-- ================================================================= --
+
+-- Auto Pump
+task.spawn(function()
+    while true do
+        if toggles.pump then
+            pcall(function() Bubble:FireServer() end)
+        end
+        task.wait(0.05)
+    end
+end)
+
+-- Auto Rebirth (LOGICA ROBUSTA VIA REQUESTREBIRTH)
+local isRequestRebirthRemoteFound = false
+local isRemoteFunction = false
+local isRemoteEvent = false
+
+if RequestRebirth then
+    isRequestRebirthRemoteFound = true
+    isRemoteFunction = RequestRebirth:IsA("RemoteFunction")
+    isRemoteEvent = RequestRebirth:IsA("RemoteEvent")
+
+    if not isRemoteFunction and not isRemoteEvent then
+        warn("⚠️ Auto Rebirth: Remote 'RequestRebirth' encontrado, mas não é RemoteFunction nem RemoteEvent.")
+        isRequestRebirthRemoteFound = false -- Marca como não válido para tentar
+    end
+else
+    warn("❌ Auto Rebirth: Remote 'RequestRebirth' não encontrado em ReplicatedStorage.Remotes!")
+end
+
+task.spawn(function()
+    while true do
+        if toggles.rebirth then
+            if isRequestRebirthRemoteFound then
+                pcall(function()
+                    if isRemoteFunction then
+                        -- Tentar InvokeServer sem argumentos
+                        local success, _ = pcall(function() return RequestRebirth:InvokeServer() end)
+                        if not success then
+                            -- Se falhar, tentar com argumento 1 (muito comum para rebirth)
+                            local success2, _ = pcall(function() return RequestRebirth:InvokeServer(1) end)
+                            if not success2 then
+                                -- Se ainda falhar, tentar com argumento 0 (menos comum, mas possível)
+                                pcall(function() return RequestRebirth:InvokeServer(0) end)
+                            end
+                        end
+                    elseif isRemoteEvent then
+                        -- Para RemoteEvent, usar FireServer
+                        RequestRebirth:FireServer()
+                    end
+                    -- print("🔥 Auto Rebirth: Tentativa de disparo enviada.") -- Descomente para ver cada tentativa
+                end)
+            else
+                -- Avisar apenas uma vez se o remote não for encontrado
+                if not isRequestRebirthRemoteFound then
+                    warn("❌ Auto Rebirth: Remote 'RequestRebirth' não está pronto para uso.")
+                    -- O loop continuará, mas não tentará disparar se o remote não existir.
+                end
+            end
+        end
+        task.wait(2) -- Espera 2 segundos entre as tentativas
+    end
+end)
+
+-- Auto Jump
+task.spawn(function()
+    while true do
+        if toggles.jump and Humanoid.FloorMaterial ~= Enum.Material.Air then
+            Humanoid.Jump = true
+        end
+        task.wait(0.1)
+    end
+end)
