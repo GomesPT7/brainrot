@@ -1,0 +1,44 @@
+task.spawn(function()
+    while true do
+        if toggles.rebirth then
+            pcall(function()
+                -- Verificar se o GUI existe
+                local rebirthGui = PlayerGui:FindFirstChild("RebirthGUI")
+                if not rebirthGui then
+                    print("⚠️ RebirthGUI não está ativo. Aguardando...")
+                    task.wait(1)
+                    return
+                end
+
+                -- Procurar o botão dentro do GUI
+                local rebirthBtn = nil
+                local rebirthFrame = rebirthGui:FindFirstChild("Rebirth")
+                if rebirthFrame then
+                    local background = rebirthFrame:FindFirstChild("Background")
+                    if background then
+                        local buttons = background:FindFirstChild("Buttons")
+                        if buttons then
+                            rebirthBtn = buttons:FindFirstChild("Rebirth")
+                        end
+                    end
+                end
+
+                -- Clicar no botão se encontrado
+                if rebirthBtn and rebirthBtn:IsA("GuiButton") and rebirthBtn.Visible then
+                    firesignal(rebirthBtn.MouseButton1Click)
+                    print("✅ Clicado no botão de rebirth!")
+                else
+                    -- Fallback: Disparar o RemoteEvent
+                    local RequestRebirth = ReplicatedStorage.Remotes:FindFirstChild("RequestRebirth")
+                    if RequestRebirth then
+                        RequestRebirth:FireServer()
+                        print("✅ Disparado RemoteEvent RequestRebirth!")
+                    else
+                        print("❌ Não foi possível ativar o rebirth. GUI ou RemoteEvent não encontrados.")
+                    end
+                end
+            end)
+        end
+        task.wait(1)
+    end
+end)
