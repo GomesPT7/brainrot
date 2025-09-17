@@ -1,0 +1,162 @@
+--==| Brainrot Jumping - AutoFarm (Atualizado para RebirthNoActive) |==--
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+--==| Remotes |==--
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+
+--==| GUI Principal |==--
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotAutoFarm"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = LocalPlayer.PlayerGui
+
+--==| Estilos |==--
+local bgColor = Color3.fromRGB(25, 25, 35)
+local headerColor = Color3.fromRGB(45, 45, 60)
+local btnColor = Color3.fromRGB(80, 120, 200)
+local toggleOff = Color3.fromRGB(200, 80, 80)
+local toggleOn = Color3.fromRGB(80, 200, 120)
+
+--==| Frame Principal |==--
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 280, 0, 340)
+mainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
+mainFrame.BackgroundColor3 = bgColor
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+--==| Header |==--
+local header = Instance.new("Frame", mainFrame)
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = headerColor
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -40, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
+title.Text = "BRAINROT AUTO FARM"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.new(1, 0.4, 0.4)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+
+--==| Área dos Botões |==--
+local content = Instance.new("Frame", mainFrame)
+content.Size = UDim2.new(1, -20, 1, -60)
+content.Position = UDim2.new(0, 10, 0, 50)
+content.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", content)
+layout.Padding = UDim.new(0, 15)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+--==| Função Criar Botões |==--
+local function createBtn(text, order, defaultColor)
+    local btn = Instance.new("TextButton", content)
+    btn.Size = UDim2.new(1, 0, 0, 45)
+    btn.BackgroundColor3 = defaultColor
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.AutoButtonColor = false
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    return btn
+end
+
+--==| Botões Principais |==--
+local moneyBtn = createBtn("INFINITE MONEY", 1, btnColor)
+local pumpBtn = createBtn("AUTO PUMP: OFF", 2, toggleOff)
+local rebirthBtn = createBtn("AUTO REBIRTH: OFF", 3, toggleOff)
+
+--==| Estados Lógicos |==--
+local pumpToggle, rebirthToggle = false, false
+
+--==| Animação de Botões |==--
+local function animateBtn(btn, isOn)
+    local targetColor = isOn and toggleOn or toggleOff
+    if btn == moneyBtn then targetColor = btnColor end
+    TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = targetColor}):Play()
+end
+
+--==| 1. Infinite Money |==--
+moneyBtn.MouseButton1Click:Connect(function()
+    local maxMoney = {9e+150, 1e+200, math.huge}
+    for _, value in ipairs(maxMoney) do
+        GiveOutReward:FireServer({value = value, type = "Money", chance = 1})
+        task.wait(0.1)
+    end
+end)
+
+--==| 2. Auto Pump |==--
+pumpBtn.MouseButton1Click:Connect(function()
+    pumpToggle = not pumpToggle
+    pumpBtn.Text = "AUTO PUMP: " .. (pumpToggle and "ON" or "OFF")
+    animateBtn(pumpBtn, pumpToggle)
+end)
+
+task.spawn(function()
+    while task.wait(0.05) do
+        if pumpToggle then Bubble:FireServer() end
+    end
+end)
+
+--==| 3. Auto Rebirth (AJUSTADO PARA RebirthNoActive) |==--
+rebirthBtn.MouseButton1Click:Connect(function()
+    rebirthToggle = not rebirthToggle
+    rebirthBtn.Text = "AUTO REBIRTH: " .. (rebirthToggle and "ON" or "OFF")
+    animateBtn(rebirthBtn, rebirthToggle)
+end)
+
+task.spawn(function()
+    local pg = LocalPlayer.PlayerGui
+    -- 🔧 CAMINHO ATUALIZADO PELO SEU PEDIDO 🔧
+    local CAMINHO_ABRIR = "Main.Left.Buttons.Rebirth"
+    local CAMINHO_CONFIRMAR = "RebirthGUI.Rebirth.Background.Buttons.RebirthNoActive"
+
+    while task.wait(2) do
+        if rebirthToggle then
+            -- Abrir menu de Rebirth
+            local botaoAbrir = pg:FindFirstChild(CAMINHO_ABRIR, true)
+            if botaoAbrir and botaoAbrir:IsA("GuiButton") and botaoAbrir.Visible then
+                pcall(function() botaoAbrir.Activated:Fire() end)
+                task.wait(0.8) -- Esperar menu carregar
+
+                -- Confirmar Rebirth (usando RebirthNoActive)
+                local botaoConfirmar = pg:FindFirstChild(CAMINHO_CONFIRMAR, true)
+                if botaoConfirmar and botaoConfirmar:IsA("GuiButton") and botaoConfirmar.Visible then
+                    pcall(function() botaoConfirmar.Activated:Fire() end)
+                end
+            end
+        end
+    end
+end)
+
+--==| Footer |==--
+local footer = Instance.new("TextLabel", mainFrame)
+footer.Size = UDim2.new(1, 0, 0, 20)
+footer.Position = UDim2.new(0, 0, 1, -25)
+footer.BackgroundTransparency = 1
+footer.TextColor3 = Color3.fromRGB(170, 170, 180)
+footer.Text = "by Cyifog"
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 12
