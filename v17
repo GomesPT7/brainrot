@@ -1,0 +1,111 @@
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Remotes
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+local RequestRebirth = ReplicatedStorage.Remotes:WaitForChild("RequestRebirth")
+
+-- Character and Humanoid
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local originalWalkSpeed = Humanoid.WalkSpeed
+local originalJumpPower = Humanoid.JumpPower
+
+-- GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotJumpingGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = PlayerGui
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 320, 0, 280)
+frame.Position = UDim2.new(0.1, 0, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+-- ... [código da interface permanece igual] ...
+
+-- Toggles
+local toggles = {
+    pump = false,
+    rebirth = false,
+    jump = false
+}
+
+-- ... [código dos botões permanece igual] ...
+
+-- Auto Pump
+task.spawn(function()
+    while true do
+        if toggles.pump then
+            pcall(function() Bubble:FireServer() end)
+        end
+        task.wait(0.05)
+    end
+end)
+
+-- Auto Rebirth (com verificação robusta do GUI)
+task.spawn(function()
+    while true do
+        if toggles.rebirth then
+            pcall(function()
+                -- Verificar se o RebirthGUI existe
+                local rebirthGui = PlayerGui:FindFirstChild("RebirthGUI")
+                
+                if not rebirthGui then
+                    print("⚠️ RebirthGUI não está ativo. Aguardando...")
+                    task.wait(1)
+                    return
+                end
+
+                -- Procurar o botão dentro do GUI
+                local rebirthBtn = nil
+                local rebirthFrame = rebirthGui:FindFirstChild("Rebirth")
+                
+                if rebirthFrame then
+                    local background = rebirthFrame:FindFirstChild("Background")
+                    if background then
+                        local buttons = background:FindFirstChild("Buttons")
+                        if buttons then
+                            rebirthBtn = buttons:FindFirstChild("Rebirth")
+                        end
+                    end
+                end
+
+                -- Tentar clicar no botão se encontrado
+                if rebirthBtn and rebirthBtn:IsA("GuiButton") and rebirthBtn.Visible then
+                    firesignal(rebirthBtn.MouseButton1Click)
+                    print("✅ Clicado no botão de rebirth!")
+                else
+                    -- Fallback: Tentar RemoteEvent
+                    if RequestRebirth then
+                        RequestRebirth:FireServer()
+                        print("✅ Disparado RemoteEvent RequestRebirth!")
+                    else
+                        print("❌ Não foi possível ativar o rebirth. GUI ou RemoteEvent não encontrados.")
+                    end
+                end
+            end)
+        end
+        task.wait(1)
+    end
+end)
+
+-- Auto Jump
+task.spawn(function()
+    while true do
+        if toggles.jump and Humanoid.FloorMaterial ~= Enum.Material.Air then
+            Humanoid.Jump = true
+        end
+        task.wait(0.1)
+    end
+end)
