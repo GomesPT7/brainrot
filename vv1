@@ -1,0 +1,139 @@
+-- ================================================================= --
+-- ================= BRAINROT JUMPING SCRIPT v6.2 ================== --
+-- ======================= by Cyifog ============================== --
+-- ================================================================= --
+
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService")
+
+-- Remote Events
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+
+-- ================================================================= --
+-- ========================== INTERFACE (GUI) ====================== --
+-- ================================================================= --
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotJumpingGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = PlayerGui
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 300, 0, 200)
+frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+-- Header
+local header = Instance.new("Frame", frame)
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "BRAINROT JUMPING"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+
+-- Botão fechar
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Função para criar botões
+local function createButton(text, order, color)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0.85, 0, 0, 40)
+    btn.Position = UDim2.new(0.075, 0, 0, 60 + ((order-1) * 50))
+    btn.BackgroundColor3 = color or Color3.fromRGB(90, 100, 200)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    return btn
+end
+
+-- Botões
+local moneyBtn = createButton("INFINITE MONEY: OFF", 1, Color3.fromRGB(80, 120, 200))
+local pumpBtn = createButton("AUTO PUMP: OFF", 2, Color3.fromRGB(200, 80, 80))
+
+-- Variáveis de estado
+local toggles = {
+    money = false,
+    pump = false
+}
+
+-- ================================================================= --
+-- ============================== LÓGICA =========================== --
+-- ================================================================= --
+
+-- Toggle helper
+local function setupToggle(btn, key)
+    btn.MouseButton1Click:Connect(function()
+        toggles[key] = not toggles[key]
+        btn.Text = btn.Text:gsub("%: .+", "") .. ": " .. (toggles[key] and "ON" or "OFF")
+        btn.BackgroundColor3 = toggles[key] and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(200, 80, 80)
+    end)
+end
+
+setupToggle(moneyBtn, "money")
+setupToggle(pumpBtn, "pump")
+
+-- ================================================================= --
+-- ========================= LOOPS AUTOMÁTICOS ===================== --
+-- ================================================================= --
+
+-- Infinite Money Loop
+task.spawn(function()
+    while true do
+        if toggles.money then
+            pcall(function()
+                for _, value in ipairs({9e+99, 1e+100, 9e+50, math.huge}) do
+                    GiveOutReward:FireServer({value = value, type = "Money", chance = 0})
+                    task.wait(0.1)
+                end
+            end)
+        end
+        task.wait(1)
+    end
+end)
+
+-- Auto Pump
+task.spawn(function()
+    while true do
+        if toggles.pump then
+            pcall(function() Bubble:FireServer() end)
+        end
+        task.wait(0.05)
+    end
+end)
+
+-- Footer
+local footer = Instance.new("TextLabel", frame)
+footer.Size = UDim2.new(1, 0, 0, 20)
+footer.Position = UDim2.new(0, 0, 1, -20)
+footer.BackgroundTransparency = 1
+footer.TextColor3 = Color3.fromRGB(170, 170, 180)
+footer.Text = "by Cyifog"
+footer.Font = Enum.Font.GothamItalic
+footer.TextSize = 12
