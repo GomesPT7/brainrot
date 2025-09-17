@@ -1,0 +1,171 @@
+-- ================================================================= --
+-- ================= BRAINROT JUMPING SCRIPT v4.0 ================== --
+-- =========== Auto Rebirth via Remote | Sem Auto Egg ============== --
+-- ================================================================= --
+
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Remote Events
+local Bubble = ReplicatedStorage.Remotes:WaitForChild("Bubble")
+local GiveOutReward = ReplicatedStorage.Remotes.Roulette:WaitForChild("GiveOutReward")
+
+-- Guardar valores originais do jogador
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local originalWalkSpeed = Humanoid.WalkSpeed
+local originalJumpPower = Humanoid.JumpPower
+
+-- ================================================================= --
+-- ========================== INTERFACE (GUI) ====================== --
+-- ================================================================= --
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotJumpingGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 300, 0, 250)
+frame.Position = UDim2.new(0.1, 0, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+-- Header
+local header = Instance.new("Frame", frame)
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -40, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "BRAINROT JUMPING HUB"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Botão fechar
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.MouseButton1Click:Connect(function()
+    Humanoid.WalkSpeed = originalWalkSpeed
+    Humanoid.JumpPower = originalJumpPower
+    screenGui:Destroy()
+end)
+
+-- Função para criar botões
+local function createButton(text, order, color)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, 0, 50 + ((order-1) * 45))
+    btn.BackgroundColor3 = color or Color3.fromRGB(90, 100, 200)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    return btn
+end
+
+-- Botões
+local moneyBtn = createButton("INFINITE MONEY", 1, Color3.fromRGB(80, 120, 200))
+local pumpBtn = createButton("AUTO PUMP: OFF", 2, Color3.fromRGB(200, 80, 80))
+local rebirthBtn = createButton("AUTO REBIRTH: OFF", 3, Color3.fromRGB(200, 80, 80))
+local jumpBtn = createButton("AUTO JUMP: OFF", 4, Color3.fromRGB(200, 80, 80))
+
+-- Variáveis de estado
+local toggles = {
+    pump = false,
+    rebirth = false,
+    jump = false
+}
+
+-- ================================================================= --
+-- ============================== LÓGICA =========================== --
+-- ================================================================= --
+
+-- Infinite Money
+moneyBtn.MouseButton1Click:Connect(function()
+    for _, value in ipairs({9e+99, 1e+100, 9e+50, math.huge}) do
+        pcall(function() 
+            GiveOutReward:FireServer({value = value, type = "Money", chance = 0}) 
+        end)
+        task.wait(0.1)
+    end
+end)
+
+-- Toggle helper
+local function setupToggle(btn, key)
+    btn.MouseButton1Click:Connect(function()
+        toggles[key] = not toggles[key]
+        btn.Text = key:upper() .. ": " .. (toggles[key] and "ON" or "OFF")
+        btn.BackgroundColor3 = toggles[key] and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(200, 80, 80)
+    end)
+end
+
+setupToggle(pumpBtn, "pump")
+setupToggle(rebirthBtn, "rebirth")
+setupToggle(jumpBtn, "jump")
+
+-- ================================================================= --
+-- ========================= LOOPS AUTOMÁTICOS ===================== --
+-- ================================================================= --
+
+-- Auto Pump
+task.spawn(function()
+    while true do
+        if toggles.pump then
+            pcall(function() Bubble:FireServer() end)
+        end
+        task.wait(0.05)
+    end
+end)
+
+-- Auto Rebirth (via Remote)
+task.spawn(function()
+    while true do
+        if toggles.rebirth then
+            pcall(function()
+                local requestRebirth = ReplicatedStorage.Remotes:FindFirstChild("RequestRebirth")
+                if requestRebirth then
+                    if requestRebirth:IsA("RemoteFunction") then
+                        -- Se for função, usar InvokeServer
+                        local success, _ = pcall(function()
+                            requestRebirth:InvokeServer()
+                        end)
+                    elseif requestRebirth:IsA("RemoteEvent") then
+                        -- Se for evento, usar FireServer
+                        requestRebirth:FireServer()
+                    else
+                        warn("⚠️ RequestRebirth não é RemoteFunction nem RemoteEvent")
+                    end
+                else
+                    warn("❌ Remote RequestRebirth não encontrado!")
+                end
+            end)
+        end
+        task.wait(1)
+    end
+end)
+
+-- Auto Jump
+task.spawn(function()
+    while true do
+        if toggles.jump and Humanoid.FloorMaterial ~= Enum.Material.Air then
+            Humanoid.Jump = true
+        end
+        task.wait(0.1)
+    end
+end)
